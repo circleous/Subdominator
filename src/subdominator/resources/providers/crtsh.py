@@ -10,12 +10,21 @@ class CrtShResource(BaseResource):
     async def enumerate(self, target: str, recursion_depth: int) -> ResourceResult:
         findings: list[str] = []
 
-        try:
-            findings = await self._get_from_sql(target)
-        except ImportError:
-            self.client.logger.debug("crtsh postgres skipped: asyncpg not installed, using HTTP fallback")
-        except Exception as e:
-            self.client.logger.debug(f"crtsh postgres connection failed for {target}: {e}")
+        if getattr(self.client, "proxy", None):
+            # asyncpg opens a raw TCP connection to crt.sh:5432, which neither an
+            # HTTP nor a SOCKS proxy setting can cover. Taking this path while a
+            # proxy is configured would send the query from the local address and
+            # leave the proxy the caller asked for unused.
+            self.client.logger.debug(
+                "crtsh postgres skipped: a proxy is configured, using HTTP fallback"
+            )
+        else:
+            try:
+                findings = await self._get_from_sql(target)
+            except ImportError:
+                self.client.logger.debug("crtsh postgres skipped: asyncpg not installed, using HTTP fallback")
+            except Exception as e:
+                self.client.logger.debug(f"crtsh postgres connection failed for {target}: {e}")
 
         if not findings:
             findings = await self._get_from_http(target)

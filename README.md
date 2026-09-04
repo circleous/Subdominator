@@ -206,6 +206,9 @@ which is why environment proxy variables are ignored while one is set.
 - **Rotating proxies.** A round-robin proxy assigns its exit address per TCP connection, not per
   request. Connections are pooled for the length of a run, so requests to one host keep the same exit
   address until that connection closes.
+- **crt.sh.** The `crtsh` resource prefers a direct PostgreSQL connection to `crt.sh:5432`, which no
+  proxy setting can cover. That path is skipped whenever a proxy is configured and the HTTPS endpoint
+  is used instead.
 - **Not proxied.** The startup version check and the `--health-check` probe do not use `--proxy`,
   because neither `gitupdater` nor `revoltutils` accepts one.
 
