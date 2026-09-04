@@ -34,7 +34,7 @@ setup(
         'socksio>=1',
         'greenlet>=3',
     ],
-    extra_require={
+    extras_require={
         "PDF": [
             'weasyprint>=65.0',
         ],
