@@ -140,13 +140,13 @@ All settings can be driven by environment variables instead of CLI flags. The pr
 | Environment variable | Equivalent flag | Effect |
 |---|---|---|
 | `SUBDOMINATOR_SSL_VERIFY=false` | `--insecure` / `-k` | Disable SSL certificate verification on all HTTP connections |
-| `SUBDOMINATOR_PROXY=http://host:port` | `--proxy` / `-p` | Route all HTTP requests through this proxy |
+| `SUBDOMINATOR_PROXY=socks5://host:port` | `--proxy` / `-p` | Route all HTTP requests through this HTTP or SOCKS proxy |
 | `SUBDOMINATOR_TIMEOUT=30` | `--timeout` / `-t` | Override default request timeout |
 | `SUBDOMINATOR_CONCURRENCY=16` | `--concurrency` / `-c` | Override default concurrency |
 
 > **Priority:** CLI flags always win over environment variables. If both are set, the CLI flag takes effect.
 
-Standard proxy env vars (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`) are also respected automatically via aiohttp's `trust_env` — no prefix needed.
+Standard proxy env vars (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`) are also respected automatically via aiohttp's `trust_env`, with no prefix needed. They are ignored when `--proxy` names a SOCKS proxy, because the SOCKS tunnel is established by the connector and an HTTP proxy taken from the environment would then be reached through that tunnel.
 
 ### Key aliases
 
@@ -192,8 +192,22 @@ subdominator [flags]
 | `--timeout` | `-t` | HTTP timeout in seconds (default: 20.0) |
 | `--retries` | `-rt` | Retries per failed request (default: 3) |
 | `--retry-backoff` | `-rb` | Backoff multiplier in seconds between retries (default: 1.0) |
-| `--proxy` | `-p` | HTTP proxy URL (e.g. `http://127.0.0.1:8080`) |
+| `--proxy` | `-p` | HTTP or SOCKS proxy URL (e.g. `http://127.0.0.1:8080`, `socks5://127.0.0.1:1080`). `socks4`, `socks4a`, `socks5` and `socks5h` are supported |
 | `--insecure` | `-k` | Skip SSL certificate verification |
+
+### Proxies
+
+`--proxy` accepts `http`, `https`, `socks4`, `socks4a`, `socks5` and `socks5h` URLs, with optional
+`user:password@` credentials. SOCKS proxies are established by the connector rather than per request,
+which is why environment proxy variables are ignored while one is set.
+
+- **DNS.** With `socks5` and `socks5h` the proxy resolves the target hostname, so no lookup leaves the
+  local host. `socks4` resolves locally; use `socks4a` for proxy-side resolution.
+- **Rotating proxies.** A round-robin proxy assigns its exit address per TCP connection, not per
+  request. Connections are pooled for the length of a run, so requests to one host keep the same exit
+  address until that connection closes.
+- **Not proxied.** The startup version check and the `--health-check` probe do not use `--proxy`,
+  because neither `gitupdater` nor `revoltutils` accepts one.
 
 ### Config
 

@@ -79,7 +79,7 @@ def build_parser() -> RichParser:
     parser.add_argument("config", "-scp","--show-config-path", action="store_true", help="Show provider config path")
     parser.add_argument("debug", "-v", "--verbose", action="store_true", help="Verbose logging")
     parser.add_argument("debug", "-k", "--insecure", action="store_true", help="Skip SSL certificate verification")
-    parser.add_argument("debug", "-p", "--proxy", type=str, help="HTTP proxy")
+    parser.add_argument("debug", "-p", "--proxy", type=str, help="HTTP or SOCKS proxy (ex: socks5://127.0.0.1:1080)")
     parser.add_argument("debug", "-nc", "--no-color", action="store_true", help="Disable colored logs")
     parser.add_argument("update", "-up", "--update", action="store_true", help="Update Subdominator to its latest version")
     parser.add_argument("update", "-release", "--release", action="store_true", help="Show release notes of Subdominator's latest version")

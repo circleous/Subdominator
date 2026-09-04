@@ -5,10 +5,50 @@ import base64
 from collections.abc import Mapping
 import json
 from typing import Any
+from urllib.parse import urlparse
 
 import aiohttp
+from aiohttp_socks import ProxyConnector, ProxyType
 from revoltlogger import Logger
 from subdominator.core.constants import VERSION
+
+DEFAULT_SOCKS_PORT = 1080
+
+# rdns None keeps the python_socks default, which is True for socks5 and False
+# for socks4. The "h" and "a" spellings request remote resolution explicitly.
+SOCKS_PROXY_TYPES: dict[str, tuple[ProxyType, bool | None]] = {
+    "socks4": (ProxyType.SOCKS4, None),
+    "socks4a": (ProxyType.SOCKS4, True),
+    "socks5": (ProxyType.SOCKS5, None),
+    "socks5h": (ProxyType.SOCKS5, True),
+}
+
+
+def is_socks_proxy(proxy: str | None) -> bool:
+    return bool(proxy) and urlparse(proxy).scheme.lower() in SOCKS_PROXY_TYPES
+
+
+def build_socks_connector(proxy: str, ssl: bool | None = None) -> ProxyConnector:
+    """Build the connector that establishes a socks tunnel for every request.
+
+    ProxyConnector.from_url is not used because python_socks parses only the
+    socks4 and socks5 spellings and raises ValueError on socks4a and socks5h,
+    which callers coming from curl or httpx reasonably pass. Both of those
+    spellings mean "the proxy resolves the hostname", which is the rdns flag.
+    """
+    parsed = urlparse(proxy)
+    if not parsed.hostname:
+        raise ValueError(f"Proxy URL is missing a host: {proxy}")
+    proxy_type, rdns = SOCKS_PROXY_TYPES[parsed.scheme.lower()]
+    return ProxyConnector(
+        proxy_type=proxy_type,
+        host=parsed.hostname,
+        port=parsed.port or DEFAULT_SOCKS_PORT,
+        username=parsed.username,
+        password=parsed.password,
+        rdns=rdns,
+        ssl=ssl,
+    )
 
 
 class RetryableHttpClient:
@@ -32,11 +72,22 @@ class RetryableHttpClient:
         self._session: aiohttp.ClientSession | None = None
 
     async def __aenter__(self) -> "RetryableHttpClient":
-        connector = aiohttp.TCPConnector(resolver=aiohttp.ThreadedResolver(), ssl=None if self.ssl_verify else False)
+        ssl = None if self.ssl_verify else False
+        socks = is_socks_proxy(self.proxy)
+        if socks:
+            # aiohttp routes only http(s) proxies through its per-request proxy
+            # argument, so a socks URL has to be established by the connector
+            # instead. trust_env is off in this case because aiohttp reads
+            # HTTP_PROXY from the environment whenever a request carries no
+            # proxy of its own, which would send requests to that HTTP proxy
+            # through the socks tunnel the caller asked for.
+            connector = build_socks_connector(self.proxy, ssl=ssl)
+        else:
+            connector = aiohttp.TCPConnector(resolver=aiohttp.ThreadedResolver(), ssl=ssl)
         self._session = aiohttp.ClientSession(
             timeout=self.timeout,
             headers={"User-Agent": self.user_agent},
-            trust_env=True,
+            trust_env=not socks,
             connector=connector,
         )
         return self
@@ -69,7 +120,7 @@ class RetryableHttpClient:
                     headers=headers,
                     params=params,
                     json=json_body,
-                    proxy=self.proxy,
+                    proxy=None if is_socks_proxy(self.proxy) else self.proxy,
                 ) as response:
                     text = await response.text()
                     if response.status in statuses:
