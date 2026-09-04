@@ -142,6 +142,7 @@ All settings can be driven by environment variables instead of CLI flags. The pr
 | `SUBDOMINATOR_SSL_VERIFY=false` | `--insecure` / `-k` | Disable SSL certificate verification on all HTTP connections |
 | `SUBDOMINATOR_PROXY=socks5://host:port` | `--proxy` / `-p` | Route all HTTP requests through this HTTP or SOCKS proxy |
 | `SUBDOMINATOR_TIMEOUT=30` | `--timeout` / `-t` | Override default request timeout |
+| `SUBDOMINATOR_MAX_TIME=60` | `--max-time` / `-mt` | Override the per-domain time limit |
 | `SUBDOMINATOR_CONCURRENCY=16` | `--concurrency` / `-c` | Override default concurrency |
 
 > **Priority:** CLI flags always win over environment variables. If both are set, the CLI flag takes effect.
@@ -190,6 +191,7 @@ subdominator [flags]
 | `--recursive-depth` | `-rd` | Max recursion depth for discovered subdomains (default: 0) |
 | `--concurrency` | `-c` | Parallel resource slots (default: 8) |
 | `--timeout` | `-t` | HTTP timeout in seconds (default: 20.0) |
+| `--max-time` | `-mt` | Time limit for enumerating one domain in seconds, `0` disables it (default: 120.0). Resources still running when it fires are cancelled and the findings already collected are kept |
 | `--retries` | `-rt` | Retries per failed request (default: 3) |
 | `--retry-backoff` | `-rb` | Backoff multiplier in seconds between retries (default: 1.0) |
 | `--proxy` | `-p` | HTTP or SOCKS proxy URL (e.g. `http://127.0.0.1:8080`, `socks5://127.0.0.1:1080`). `socks4`, `socks4a`, `socks5` and `socks5h` are supported |

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import unittest
 from datetime import UTC, datetime
+from time import perf_counter
 
 from revoltlogger import LogLevel, Logger
 
@@ -27,6 +28,14 @@ class FailingResource(BaseResource):
 
     async def enumerate(self, target: str, recursion_depth: int) -> ResourceResult:
         raise RuntimeError("boom")
+
+
+class StallingResource(BaseResource):
+    name = "stalled"
+
+    async def enumerate(self, target: str, recursion_depth: int) -> ResourceResult:
+        await asyncio.Event().wait()
+        raise AssertionError("the stalled resource must never finish")
 
 
 class EnumeratorSummaryTests(unittest.TestCase):
@@ -79,6 +88,30 @@ class EnumeratorSummaryTests(unittest.TestCase):
         self.assertEqual(merged.historical_findings_count, 2)
         self.assertEqual(merged.new_findings_count, 1)
         self.assertEqual(merged.reused_historical_findings_count, 1)
+
+
+class EnumeratorMaxTimeTests(unittest.TestCase):
+    def test_max_time_cancels_stalled_resources_and_keeps_findings(self) -> None:
+        service = EnumerationService(Logger(name="test", level=LogLevel.NONE), max_time=0.5)
+        fake = FakeResource(client=None, provider_config=None)  # type: ignore[arg-type]
+        stalled = StallingResource(client=None, provider_config=None)  # type: ignore[arg-type]
+
+        started = perf_counter()
+        summary = asyncio.run(service.enumerate("example.com", [fake, stalled], recursive_depth=0))
+        elapsed = perf_counter() - started
+
+        self.assertLess(elapsed, 10.0)
+        self.assertEqual([finding.subdomain for finding in summary.findings], ["a.example.com", "b.example.com"])
+        self.assertEqual(summary.total_resource_executions, 1)
+
+    def test_without_max_time_every_resource_runs_to_completion(self) -> None:
+        service = EnumerationService(Logger(name="test", level=LogLevel.NONE))
+        fake = FakeResource(client=None, provider_config=None)  # type: ignore[arg-type]
+        broken = FailingResource(client=None, provider_config=None)  # type: ignore[arg-type]
+
+        summary = asyncio.run(service.enumerate("example.com", [fake, broken], recursive_depth=0))
+
+        self.assertEqual(summary.total_resource_executions, 2)
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@ class RuntimeSettings(BaseSettings):
     retries: int = 3
     retry_backoff: float = 1.0
     concurrency: int = 8
+    max_time: float = 120.0
     recursive_depth: int = 0
     save_db: bool = True
     log_level: str = "INFO"

@@ -13,10 +13,17 @@ from subdominator.resources.base import BaseResource
 
 
 class EnumerationService:
-    def __init__(self, logger: Logger, concurrency: int = 8, cancel_event: asyncio.Event | None = None) -> None:
+    def __init__(
+        self,
+        logger: Logger,
+        concurrency: int = 8,
+        cancel_event: asyncio.Event | None = None,
+        max_time: float | None = None,
+    ) -> None:
         self.logger = logger
         self.semaphore = asyncio.Semaphore(concurrency)
         self.cancel_event = cancel_event
+        self.max_time = max_time
 
     async def enumerate(
         self,
@@ -25,6 +32,8 @@ class EnumerationService:
         recursive_depth: int = 0,
     ) -> EnumerationSummary:
         started_at = datetime.now(UTC)
+        deadline = perf_counter() + self.max_time if self.max_time and self.max_time > 0 else None
+        deadline_reached = False
 
         # Use a temporary directory for the disk-backed findings cache.
         # This keeps RAM usage flat regardless of how many subdomains are discovered
@@ -41,7 +50,12 @@ class EnumerationService:
             while queue:
                 current_target, depth = queue.popleft()
                 self.logger.info(f"Enumerating {current_target} at recursion depth {depth}")
-                tasks = {asyncio.create_task(self._run_resource(resource, current_target, depth)) for resource in resources}
+                tasks = {
+                    asyncio.create_task(
+                        self._run_resource(resource, current_target, depth), name=resource.name
+                    )
+                    for resource in resources
+                }
                 cancel_task = asyncio.create_task(self.cancel_event.wait()) if self.cancel_event else None
 
                 try:
@@ -50,7 +64,28 @@ class EnumerationService:
                         if cancel_task and not cancel_task.done():
                             wait_list.append(cancel_task)
 
-                        done, pending = await asyncio.wait(wait_list, return_when=asyncio.FIRST_COMPLETED)
+                        remaining = None if deadline is None else deadline - perf_counter()
+                        if remaining is not None and remaining <= 0:
+                            deadline_reached = True
+
+                        if not deadline_reached:
+                            done, pending = await asyncio.wait(
+                                wait_list, return_when=asyncio.FIRST_COMPLETED, timeout=remaining
+                            )
+                            # asyncio.wait reports nothing done only when the timeout expired,
+                            # so an empty set means the deadline arrived first.
+                            deadline_reached = not done
+
+                        if deadline_reached:
+                            unfinished = sorted(task.get_name() for task in tasks if not task.done())
+                            self.logger.warn(
+                                f"Reached the -mt limit of {self.max_time} seconds for {domain}, "
+                                f"cancelled {len(unfinished)} unfinished resource(s): {', '.join(unfinished)}"
+                            )
+                            for task in tasks:
+                                if not task.done():
+                                    task.cancel()
+                            break
 
                         if cancel_task and cancel_task in done:
                             self.logger.warn("Scan interrupted by user! Gracefully finalizing partial results...")
@@ -111,7 +146,7 @@ class EnumerationService:
                         except asyncio.CancelledError:
                             pass
 
-                if cancel_task and cancel_task.done():
+                if deadline_reached or (cancel_task and cancel_task.done()):
                     break
 
             # Materialize sorted findings from disk cache — avoids keeping 100k+ objects in RAM

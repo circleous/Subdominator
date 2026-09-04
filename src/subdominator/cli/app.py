@@ -56,6 +56,7 @@ def build_parser() -> RichParser:
     parser.add_argument("runtime", "-rt", "--retries", type=int, default=3, help="Retry count")
     parser.add_argument("runtime", "-rb", "--retry-backoff", type=float, default=1.0, help="Retry backoff")
     parser.add_argument("runtime", "-c", "--concurrency", type=int, default=8, help="Concurrent resource execution")
+    parser.add_argument("runtime", "-mt", "--max-time", type=float, default=120.0, help="Time limit for enumerating one domain in seconds, 0 to disable")
     parser.add_argument(
         "runtime",
         "-rd",
@@ -151,6 +152,7 @@ async def run(cancel_event: asyncio.Event | None = None) -> int:
         retries=args.retries,
         retry_backoff=args.retry_backoff,
         concurrency=args.concurrency,
+        max_time=args.max_time,
         recursive_depth=args.recursive_depth,
         save_db=args.save_db or not args.no_db,
         proxy=args.proxy or defaults.proxy,
@@ -264,7 +266,12 @@ async def run(cancel_event: asyncio.Event | None = None) -> int:
             logger.error("No input domains provided.")
             return 1
 
-        service = EnumerationService(logger, concurrency=settings.concurrency, cancel_event=cancel_event)
+        service = EnumerationService(
+            logger,
+            concurrency=settings.concurrency,
+            cancel_event=cancel_event,
+            max_time=settings.max_time,
+        )
         writer = OutputWriter()
         repository = None
         database = None
