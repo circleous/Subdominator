@@ -64,12 +64,9 @@ from subdominator.resources.providers.rsecloud import RseCloudResource
 from subdominator.resources.providers.securitytrails import SecurityTrailsResource
 from subdominator.resources.providers.shodan import ShodanResource
 from subdominator.resources.providers.shodanx import ShodanXResource
-from subdominator.resources.providers.shrewdeye import ShrewdEyeResource
-from subdominator.resources.providers.sitedossier import SiteDossierResource
 from subdominator.resources.providers.submd import SubMdResource
 from subdominator.resources.providers.thc import ThcResource
 from subdominator.resources.providers.threatbook import ThreatBookResource
-from subdominator.resources.providers.threatcrowd import ThreatCrowdResource
 from subdominator.resources.providers.threatminer import ThreatMinerResource
 from subdominator.resources.providers.trickest import TrickestResource
 from subdominator.resources.providers.urlscan import UrlscanResource
@@ -140,12 +137,9 @@ RESOURCE_TYPES = [
     SecurityTrailsResource,
     ShodanResource,
     ShodanXResource,
-    ShrewdEyeResource,
-    SiteDossierResource,
     SubMdResource,
     ThcResource,
     ThreatBookResource,
-    ThreatCrowdResource,
     ThreatMinerResource,
     TrickestResource,
     UrlscanResource,

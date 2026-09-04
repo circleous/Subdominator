@@ -422,11 +422,8 @@ Findings are automatically saved to SQLite at `~/.local/share/subdominator/subdo
 | `rapiddns` | https://rapiddns.io/ | |
 | `reconcloud` | https://recon.cloud/ | |
 | `riddler` | https://riddler.io/ | |
-| `shrewdeye` | https://shrewdeye.app/api | |
-| `sitedossier` | https://www.sitedossier.com/ | |
 | `shodanx` | https://github.com/RevoltSecurities/Shodanx | |
 | `thc` | https://thc.org/ | |
-| `threatcrowd` | https://threatcrowd.org/ | |
 | `threatminer` | https://www.threatminer.org/ | |
 | `waybackarchive` † | https://archive.org/wayback | Very slow |
 
