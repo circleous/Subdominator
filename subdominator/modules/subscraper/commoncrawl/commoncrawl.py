@@ -4,6 +4,7 @@ from datetime import datetime
 from colorama import Fore, Style
 from subdominator.modules.utils.utils import extracts, UserAgents, Exit
 from subdominator.modules.logger.logger import logger
+from subdominator.modules.transport.transport import http_client
 
 Commoncrawls = set()
 
@@ -85,9 +86,7 @@ async def commoncrawl(Domain, args):
         ):
             return Commoncrawls
 
-        async with httpx.AsyncClient(
-            timeout=args.timeout, verify=False, proxy=args.proxy
-        ) as session:
+        async with http_client(args) as session:
             indexurls = []
             added = set()
             responsed = await indexDB(session, args)

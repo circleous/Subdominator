@@ -21,6 +21,7 @@ setup(
         'beautifulsoup4>=4.13.3',
         'colorama>=0.4.6',
         'fake_useragent>=2.0.3',
+        'httpcore>=1',
         'httpx>=0.28.1',
         'Jinja2>=3.1.6',
         'prompt_toolkit>=3.0.50',

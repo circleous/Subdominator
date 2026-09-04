@@ -1,6 +1,7 @@
 import httpx
 from subdominator.modules.utils.utils import extracts, UserAgents
 from subdominator.modules.logger.logger import logger
+from subdominator.modules.transport.transport import http_client
 
 Waybackurls = set()
 
@@ -13,9 +14,7 @@ async def waybackarchive(domain, args):
         ):
             return Waybackurls
         headers = {"User-Agent": UserAgents()}
-        async with httpx.AsyncClient(
-            verify=False, proxy=args.proxy, timeout=args.timeout
-        ) as request:
+        async with http_client(args) as request:
             timeout = httpx.Timeout(
                 read=300.0, connect=args.timeout, write=None, pool=None
             )

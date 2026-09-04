@@ -12,6 +12,7 @@ def cli():
         parser.add_argument("-o", "--output", type=str)
         parser.add_argument("-oD", "--output-directory", type=str)
         parser.add_argument("-t", "--timeout", type=float, default=30)
+        parser.add_argument("-mt", "--max-time", type=float, default=120)
         parser.add_argument("-up", "--update", action="store_true")
         parser.add_argument("-nt", "--notify", action="store_true")
         parser.add_argument("-px", "--proxy", type=str)

@@ -81,8 +81,6 @@ try:
     from .subscraper.securitytrails.securitytrails import securitytrails
     from .subscraper.shodan.shodan import shodan
     from .subscraper.shodanx.shodanx import shodanx
-    from .subscraper.shrewdeye.shrewdeye import shrewdeye
-    from .subscraper.sitedossier.sitedossier import sitedossier
     from .subscraper.trickest.trickest import trickest
     from .subscraper.urlscan.urlscan import urlscan
     from .subscraper.virustotal.virustotal import virustotal
@@ -92,9 +90,9 @@ try:
     from .subscraper.digitalyama.digitalyama import digitalyama
     from .subscraper.odin.odin import odin
     from .subscraper.hudsonrock.hudsonrock import hudsonrock
-    from .subscraper.threatcrowd.threatcrowd import threatcrowd
     from .save.save import file, dir, jsonsave
     from .notify.notify import notify
+    from .transport.transport import http_client
 except ImportError as e:
     print(
         f"[{bold}{red}INFO{reset}]: {bold}{white}Import Error occured in  Subdominator Module imports due to: {e}{reset}",
@@ -140,13 +138,54 @@ banners = banner()
 username = Username()
 
 
+async def _run_sources(coroutines):
+    """Run the sources concurrently and keep whatever finished inside --max-time.
+
+    The sources share one client and one wait, so the wall time to expect is the
+    slowest source rather than the sum of the per-source timeouts, which is why
+    the limit is a flag of its own instead of a multiple of -t. Results that
+    already arrived survive the limit, because cancelling a slow source must not
+    cost the run the output of the sources that answered.
+    """
+    tasks = []
+    for coroutine in coroutines:
+        task = asyncio.ensure_future(coroutine)
+        task.set_name(getattr(coroutine, "__qualname__", task.get_name()))
+        tasks.append(task)
+
+    done, pending = await asyncio.wait(tasks, timeout=args.max_time)
+
+    for task in pending:
+        task.cancel()
+    if pending:
+        await asyncio.gather(*pending, return_exceptions=True)
+        if not args.silent:
+            logger(
+                f"Reached the -mt limit of {args.max_time} seconds, cancelled "
+                f"{len(pending)} unfinished source(s): "
+                f"{', '.join(sorted(task.get_name() for task in pending))}",
+                "warn",
+                args.no_color,
+            )
+
+    results = []
+    for task in done:
+        try:
+            results.append(task.result())
+        except Exception as e:
+            if args.verbose:
+                logger(
+                    f"Exception in {task.get_name()} source: {e}, {type(e)}",
+                    "warn",
+                    args.no_color,
+                )
+    return results
+
+
 async def __initiate__(domain):
     try:
         limits = httpx.Limits(max_keepalive_connections=20, max_connections=50)
-        timeout = httpx.Timeout(args.timeout, connect=args.timeout)
-        async with httpx.AsyncClient(
-            proxy=args.proxy, verify=False, limits=limits, timeout=timeout
-        ) as session:
+        async with http_client(args, limits=limits) as session:
             tasks = [
                 abuseipdb(domain, session, args),
                 alienvault(domain, session, args),
@@ -189,8 +228,6 @@ async def __initiate__(domain):
                 securitytrails(domain, session, configpath, username, args),
                 shodan(domain, session, configpath, username, args),
                 shodanx(domain, session, args),
-                shrewdeye(domain, session, args),
-                sitedossier(domain, session, args),
                 trickest(domain, configpath, args),
                 urlscan(domain, session, args),
                 virustotal(domain, session, configpath, username, args),
@@ -200,21 +237,8 @@ async def __initiate__(domain):
                 digitalyama(domain, session, configpath, username, args),
                 odin(domain, session, configpath, username, args),
                 hudsonrock(domain, session, args),
-                threatcrowd(domain, session, args),
             ]
-            results = await asyncio.wait_for(
-                asyncio.gather(*tasks, return_exceptions=True),
-                timeout=args.timeout * len(tasks),
-            )
-            return results
-    except asyncio.TimeoutError:
-        if args.verbose:
-            logger(
-                f"Overall timeout reached after {args.timeout * len(tasks)} seconds",
-                "warn",
-                args.no_color,
-            )
-        return None
+            return await _run_sources(tasks)
     except Exception as e:
         if args.verbose:
             logger(f"Exception handler sources: {e}, {type(e)}", "warn", args.no_color)

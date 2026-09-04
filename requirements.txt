@@ -17,4 +17,4 @@ art>=6.4
  aiosqlite>=0.21.0
  greenlet>=3
  socksio>=1
- 
+httpcore>=1

@@ -31,6 +31,7 @@ def help(path, dbpath):
     {bold}{white}[{reset}{bold}{blue}OPTIMIZATION{reset}{bold}{white}]{reset}:
     
         {bold}{white}-t,   --timeout               :  Set timeout value for API requests (default: 30s).
+        -mt,  --max-time              :  Set the time limit for enumerating one domain, sources still running are cancelled (default: 120s).
         -fw,  --filter-wildcards      :  Filter out wildcard subdomains.{reset}
 
     {bold}{white}[{reset}{bold}{blue}CONFIGURATION{reset}{bold}{white}]{reset}:
@@ -38,7 +39,7 @@ def help(path, dbpath):
         {bold}{white}-cp,  --config-path           :  Custom config file path for API keys (default: {path}).
         -cdp, --config-db-path        :  Custom database config path (default: {dbpath}).
         -nt,  --notify                :  Send notifications for found subdomains via Slack, Pushbullet.
-        -px,  --proxy                 :  Use an HTTP proxy for debugging requests.
+        -px,  --proxy                 :  Route requests through an HTTP or SOCKS5 proxy (ex: -px socks5://127.0.0.1:1080).
         -dork, --dork                 :  Use a custom google dork for google resource (ex: -ir google --dork 'site:target.com -www -dev intext:secrets'){reset}
 
     {bold}{white}[{reset}{bold}{blue}RESOURCE CONFIGURATION{reset}{bold}{white}]{reset}:

@@ -106,6 +106,7 @@ ____/ \__,_| _.__/  \__,_| \___/  _|  _|  _| _| _|  _| \__,_| \__| \___/  _|
     [OPTIMIZATION]:
     
         -t,   --timeout               :  Set timeout value for API requests (default: 30s).
+        -mt,  --max-time              :  Set the time limit for enumerating one domain, sources still running are cancelled (default: 120s).
         -fw,  --filter-wildcards      :  Filter out wildcard subdomains.
 
     [CONFIGURATION]:
@@ -113,7 +114,7 @@ ____/ \__,_| _.__/  \__,_| \___/  _|  _|  _| _| _|  _| \__,_| \__| \___/  _|
         -cp,  --config-path           :  Custom config file path for API keys (default: /home/sanjai/.config/Subdominator/provider-config.yaml).
         -cdp, --config-db-path        :  Custom database config path (default: /home/sanjai/.cache/SubdominatorDB/subdominator.db).
         -nt,  --notify                :  Send notifications for found subdomains via Slack, Pushbullet.
-        -px,  --proxy                 :  Use an HTTP proxy for debugging requests.
+        -px,  --proxy                 :  Route requests through an HTTP or SOCKS5 proxy (ex: -px socks5://127.0.0.1:1080).
         -dork, --dork                 :  Use a custom google dork for google resource (ex: -ir google --dork 'site:target.com -www -dev intext:secrets')
 
     [RESOURCE CONFIGURATION]:
@@ -188,9 +189,6 @@ ____/ \__,_| _.__/  \__,_| \___/  _|  _|  _| _| _|  _| \__,_| \__| \___/  _|
 - **SecurityTrails** → [securitytrails.com](http://securitytrails.com/)  
 - **Shodan** → [shodan.io](https://shodan.io)  
 - **ShodanX** → [github.com/RevoltSecurities/Shodanx](https://github.com/RevoltSecurities/Shodanx)  
-- **ShrewdEye** → [shrewdeye.app](https://shrewdeye.app/api)  
-- **SiteDossier** → [sitedossier.com](https://sitedossier.com/)  
-- **ThreatCrowd** → [ci-www.threatcrowd.org](http://ci-www.threatcrowd.org/)  
 - **Trickest** → [trickest.io](https://trickest.io/)  
 - **URLScan** → [urlscan.io](https://urlscan.io/)  
 - **VirusTotal** → [virustotal.com](https://virustotal.com/)  

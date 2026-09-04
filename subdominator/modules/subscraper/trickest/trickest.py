@@ -1,6 +1,7 @@
 import asyncio
 import httpx
 from subdominator.modules.logger.logger import logger
+from subdominator.modules.transport.transport import http_client
 from subdominator.modules.utils.utils import singlekeyloader, UserAgents
 
 sem = asyncio.Semaphore(50)
@@ -71,9 +72,7 @@ async def trickest(domain: str, configs: str, args):
 
         headers = {"User-Agent": UserAgents(), "Authorization": f"Token {randomapikey}"}
         tasks = []
-        async with httpx.AsyncClient(
-            verify=False, proxy=args.proxy, headers=headers, timeout=args.timeout
-        ) as session:
+        async with http_client(args, headers=headers) as session:
             total = await get_count(session, 10, domain, args)
             if not total or total == 0:
                 return Trickest
